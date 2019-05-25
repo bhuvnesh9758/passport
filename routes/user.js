@@ -1,4 +1,5 @@
 const route=require('express').Router();
+const User=require('../db')
 route.get('/login',(req,res)=>{
     res.render('login')
 })
@@ -12,7 +13,7 @@ route.post('/login',(req,res)=>{
         errors.push({msg:'please fill all mandatory fields'});
     }
     if(password.length <6){
-        errors.push({msg:'password  should be atleast 6 characters'})
+        errors.push({msg:'password  should be atleast 6 characters'});
     }
     if(errors.length >0){
         res.render('login',{
@@ -25,6 +26,7 @@ route.post('/login',(req,res)=>{
 route.post('/register',(req,res)=>{
     const {name,email,password,password2}=req.body;
     let errors=[];
+    //validation
     if(!name || !email || !password || !password2){
         errors.push({msg:'please fill all mandatory fields'});
     }
@@ -35,11 +37,40 @@ route.post('/register',(req,res)=>{
         errors.push({msg:'password  should be atleast 6 characters'})
     }
     if(errors.length >0){
+        //render the same
         res.render('register',{
             errors,name,email,password,password2
         })
     }else{
-        res.send('pass')
+        //check if user already exist or not
+        User.findAll({
+            where:{
+                email:email
+            }
+        })
+        .then((user)=>{
+            if(user.length>0){
+            errors.push({msg:'email already exist'});
+            res.render('register',{
+                errors,name,email,password,password2
+            })
+        }else{
+              //create user
+        User.create({
+            name:name,
+            email:email,
+            password:password
+        })
+        .then((user)=>{
+            console.log('user created with id',user.id)
+            res.redirect('login')
+        })
+        .catch(err=>console.log(err))
+        }
+        })
+        .catch(err=>{
+            err=>console.log(err)
+        })
     }
 })
 module.exports=route
